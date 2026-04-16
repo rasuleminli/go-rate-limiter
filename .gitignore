@@ -1,0 +1,25 @@
+# Air / local temp builds
+tmp/
+.air/
+
+# Go binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary / coverage
+*.test
+*.out
+coverage.out
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Env files (if used)
+.env
+.env.*
