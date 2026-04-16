@@ -1,7 +1,6 @@
-package main
+package ratelimit
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"sync"
@@ -20,6 +19,20 @@ const RequestCost = 1.0 // each API hit costs 1 token
 var memoryStore = map[string]*Client{}
 var mutex sync.Mutex
 
+func RateLimitMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := getIP(r)
+		allowed := allow(ip)
+
+		if !allowed {
+			http.Error(w, "[429] Too Many Requests", http.StatusTooManyRequests)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func allow(ip string) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -35,10 +48,7 @@ func allow(ip string) bool {
 		memoryStore[ip] = client
 	}
 
-	// fmt.Printf("client: %+v", client)
-
 	deltaSec := now.Sub(client.LastSeen).Seconds()
-
 	client.Tokens += deltaSec * RefillRate
 
 	if client.Tokens > MaxTokens {
@@ -53,25 +63,6 @@ func allow(ip string) bool {
 	}
 
 	return false
-}
-
-func main() {
-	http.HandleFunc("/limited", func(w http.ResponseWriter, r *http.Request) {
-		ip := getIP(r)
-
-		allowed := allow(ip)
-		if !allowed {
-			http.Error(w, "[429] Too Many Requests", http.StatusTooManyRequests)
-		}
-
-		fmt.Fprint(w, "Limited, don't overuse me!")
-	})
-
-	http.HandleFunc("/unlimited", func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprint(w, "Unlimited! Let's go!")
-	})
-
-	http.ListenAndServe(":8080", nil)
 }
 
 func getIP(r *http.Request) string {
