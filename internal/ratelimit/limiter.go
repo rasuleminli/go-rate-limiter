@@ -33,11 +33,13 @@ func RateLimitMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+var clock = time.Now
+
 func allow(ip string) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	now := time.Now()
+	now := clock()
 
 	client, ok := memoryStore[ip]
 	if !ok {

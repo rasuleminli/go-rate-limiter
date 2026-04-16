@@ -26,6 +26,10 @@ func TestAllow_Refill(t *testing.T) {
 	testIP := "192.168.1.2"
 	memoryStore = make(map[string]*Client)
 
+	mockTime := time.Now()
+	clock = func() time.Time { return mockTime }
+	t.Cleanup(func() { clock = time.Now })
+
 	for range int(MaxTokens) {
 		allow(testIP)
 	}
@@ -34,7 +38,8 @@ func TestAllow_Refill(t *testing.T) {
 		t.Fatalf("Request #%d should've been rejected, but it was allowed", int(MaxTokens)+1)
 	}
 
-	time.Sleep(time.Second)
+	mockTime = mockTime.Add(time.Second)
+
 	for i := range int(RequestCost) {
 		if !allow(testIP) {
 			t.Fatalf("Request #%d was incorrectly rejected", i+1)
